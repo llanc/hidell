@@ -14,14 +14,12 @@ jobs:
     
     strategy:
       matrix:
-        arch: [386, amd64, arm]
+        arch: [x86, x86_64]
         include:
-          - arch: 386
+          - arch: x86
             goarch: 386
-          - arch: amd64
+          - arch: x86_64
             goarch: amd64
-          - arch: arm
-            goarch: arm
             
     steps:
     - uses: actions/checkout@v4
