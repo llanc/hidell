@@ -8,6 +8,7 @@ import (
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
 	"github.com/skratchdot/open-golang/open"
+	"golang.org/x/sys/windows/registry"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,6 +56,11 @@ func onReady() {
 	mHide := systray.AddMenuItem("隐藏", "隐藏已存在的点文件/点文件夹")
 	mShow := systray.AddMenuItem("显示", "显示已存在的点文件/点文件夹")
 	systray.AddSeparator()
+	mAutoStart := systray.AddMenuItem("开机自启", "设置程序开机自启")
+	if isAutoStartEnabled() {
+		mAutoStart.Check()
+	}
+	systray.AddSeparator()
 	mAbout := systray.AddMenuItem("关于HIDELL", "")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("退出", "")
@@ -89,8 +95,16 @@ func onReady() {
 				mShow.Check()
 				mHide.Uncheck()
 				unhideDotFiles(userHome)
+			case <-mAutoStart.ClickedCh:
+				if mAutoStart.Checked() {
+					disableAutoStart()
+					mAutoStart.Uncheck()
+				} else {
+					enableAutoStart()
+					mAutoStart.Check()
+				}
 			case <-mAbout.ClickedCh:
-				open.Run("https://www.github.com/llanc/hidell")
+				_ = open.Run("https://www.github.com/llanc/hidell")
 			case <-mQuit.ClickedCh:
 				systray.Quit() //退出托盘
 				return
@@ -189,7 +203,7 @@ func hideFile(path string) {
 		panic(err)
 		return
 	}
-	syscall.SetFileAttributes(ptr, attrs|syscall.FILE_ATTRIBUTE_HIDDEN)
+	_ = syscall.SetFileAttributes(ptr, attrs|syscall.FILE_ATTRIBUTE_HIDDEN)
 }
 
 // 取消隐藏文件
@@ -204,7 +218,7 @@ func unhideFile(path string) {
 		panic(err)
 		return
 	}
-	syscall.SetFileAttributes(ptr, attrs&^syscall.FILE_ATTRIBUTE_HIDDEN)
+	_ = syscall.SetFileAttributes(ptr, attrs&^syscall.FILE_ATTRIBUTE_HIDDEN)
 }
 
 // 监听目录变化
@@ -242,4 +256,50 @@ func watchDir(dir string, done chan struct{}) {
 			panic(err)
 		}
 	}
+}
+
+func isAutoStartEnabled() bool {
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	defer k.Close()
+
+	val, _, err := k.GetStringValue("HIDELL")
+	if err != nil {
+		return false
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return false
+	}
+
+	return val == exePath
+}
+
+func enableAutoStart() {
+	exePath, err := os.Executable()
+	if err != nil {
+		// 处理错误
+		return
+	}
+
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+
+	_ = k.SetStringValue("HIDELL", exePath)
+}
+
+func disableAutoStart() {
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+
+	_ = k.DeleteValue("HIDELL")
 }
