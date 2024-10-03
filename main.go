@@ -61,7 +61,7 @@ func onReady() {
 		mAutoStart.Check()
 	}
 	systray.AddSeparator()
-	mAbout := systray.AddMenuItem("关于HIDELL", "")
+	mAbout := systray.AddMenuItem("关于HIDELL V1.1", "")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("退出", "")
 
