@@ -7,6 +7,14 @@
 
 如果HIDELL帮到你了，请给我一个星星。
 
+功能说明：
+- 托盘功能默认针对户主目录
+- 通过其它目录菜单来添加其他目录
+
 A software that can make the user directory of the Windows system "tidy". It will automatically hide the "dot files" and "dot folders", just like under the Linux system.
 
 If HIDELL helps you, please give me a star.
+
+Function description:
+- The tray function targets the household directory by default
+- Add additional directories via the Other Directories menu

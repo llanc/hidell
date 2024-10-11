@@ -2,11 +2,10 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
 	"github.com/fsnotify/fsnotify"
 	"github.com/getlantern/systray"
-	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
-	"github.com/lxn/win"
+	"github.com/ncruces/zenity"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/sys/windows/registry"
 	"os"
@@ -18,13 +17,26 @@ import (
 //go:embed hidell.ico
 var logo []byte
 
-var mw *walk.MainWindow
 var systrayToolTip = "HIDE Like Linux"
 
 // 控制 watchDir goroutine 的通道
 var watcherDone chan struct{}
 
+// 添加新的结构体来表示自定义目录
+type CustomDir struct {
+	Path    string `json:"path"`
+	Alias   string `json:"alias"`
+	Active  bool   `json:"active"`
+	Hidden  bool   `json:"hidden"`
+	watcher *fsnotify.Watcher
+	done    chan struct{}
+}
+
+// 添加全局变量来存储自定义目录
+var customDirs []CustomDir
+
 func main() {
+	loadConfig()
 	//启动快捷键监听
 	//go func() {
 	//	hkey := hotkey.New()
@@ -56,14 +68,23 @@ func onReady() {
 	mHide := systray.AddMenuItem("隐藏", "隐藏已存在的点文件/点文件夹")
 	mShow := systray.AddMenuItem("显示", "显示已存在的点文件/点文件夹")
 	systray.AddSeparator()
+
+	mOtherDirs := systray.AddMenuItem("其他目录", "管理其他目录")
+
+	systray.AddSeparator()
+	mAbout := systray.AddMenuItem("关于HIDELL V1.2", "")
+	systray.AddSeparator()
 	mAutoStart := systray.AddMenuItem("开机自启", "设置程序开机自启")
 	if isAutoStartEnabled() {
 		mAutoStart.Check()
 	}
-	systray.AddSeparator()
-	mAbout := systray.AddMenuItem("关于HIDELL V1.1", "")
-	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("退出", "")
+
+	mAddDir := mOtherDirs.AddSubMenuItem("添加目录", "添加新的目录")
+	// 添加自定义目录菜单
+	for i := range customDirs {
+		addCustomDirMenu(&customDirs[i], mOtherDirs)
+	}
 
 	userHome := os.Getenv("USERPROFILE")
 	go func() {
@@ -108,6 +129,8 @@ func onReady() {
 			case <-mQuit.ClickedCh:
 				systray.Quit() //退出托盘
 				return
+			case <-mAddDir.ClickedCh:
+				addNewCustomDir(mOtherDirs)
 			}
 		}
 	}()
@@ -119,50 +142,6 @@ func onExit() {
 	if watcherDone != nil {
 		close(watcherDone)
 	}
-}
-
-func runHomeWindow() {
-	var err error
-	mw, err = walk.NewMainWindow()
-	if err != nil {
-		panic(err)
-	}
-
-	err = MainWindow{
-		AssignTo: &mw,
-		Title:    "HIDELL",
-		MinSize:  Size{Width: 300, Height: 400},
-		Size:     Size{Width: 300, Height: 400},
-		Layout:   VBox{},
-		Children: []Widget{
-			HSplitter{
-				Children: []Widget{
-					PushButton{Text: "激活"},
-					PushButton{Text: "隐藏"},
-					PushButton{Text: "显示"},
-					PushButton{Text: "添加目录"},
-				},
-			},
-		},
-	}.Create()
-	if err != nil {
-		panic(err)
-	}
-
-	// 移除右上角的最大化按钮
-	style := win.GetWindowLong(mw.Handle(), win.GWL_STYLE)
-	style &^= win.WS_MAXIMIZEBOX
-	win.SetWindowLong(mw.Handle(), win.GWL_STYLE, style)
-
-	// 处理最小化事件
-	mw.Closing().Attach(func(canceled *bool, reason walk.CloseReason) {
-		if reason == walk.CloseReasonUnknown {
-			*canceled = true
-			mw.Hide()
-		}
-	})
-
-	mw.Run()
 }
 
 // 隐藏目录下所有以点开头的文件或文件夹
@@ -302,4 +281,232 @@ func disableAutoStart() {
 	defer k.Close()
 
 	_ = k.DeleteValue("HIDELL")
+}
+
+// 处理自定义目录的菜单
+func addCustomDirMenu(dir *CustomDir, parentMenu *systray.MenuItem) {
+	menuName := dir.Alias
+	if menuName == "" {
+		menuName = dir.Path
+	}
+	dirMenu := parentMenu.AddSubMenuItem(menuName, "")
+	mActivate := dirMenu.AddSubMenuItem("激活", "")
+	mShow := dirMenu.AddSubMenuItem("显示", "")
+	mHide := dirMenu.AddSubMenuItem("隐藏", "")
+	//dirMenu.AddSeparator()
+	mRemove := dirMenu.AddSubMenuItem("移除", "")
+
+	if dir.Active {
+		mActivate.Check()
+		dir.startWatching()
+	}
+	if dir.Hidden {
+		mHide.Check()
+	} else {
+		mShow.Check()
+	}
+
+	go func() {
+		for {
+			select {
+			case <-mActivate.ClickedCh:
+				toggleActivate(dir, mActivate)
+			case <-mShow.ClickedCh:
+				showCustomDir(dir, mShow, mHide)
+			case <-mHide.ClickedCh:
+				hideCustomDir(dir, mShow, mHide)
+			case <-mRemove.ClickedCh:
+				removeCustomDir(dir, dirMenu, parentMenu)
+				return
+			}
+		}
+	}()
+}
+
+// 处理添加新目录
+func addNewCustomDir(parentMenu *systray.MenuItem) {
+	path, err := zenity.SelectFile(
+		zenity.Title("选择目录"),
+		zenity.Directory(),
+	)
+	if err != nil {
+		if err == zenity.ErrCanceled {
+			return // 用户取消了选择
+		}
+		zenity.Error("选择目录时出错: " + err.Error())
+		return
+	}
+
+	alias, err := zenity.Entry(
+		"为这个目录输入一个别名（可选）",
+		zenity.Title("设置别名"),
+		//zenity.AlwaysOnTop(),
+	)
+	if err != nil {
+		if err == zenity.ErrCanceled {
+			alias = "" // 用户没有输入别名，使用空字符串
+		} else {
+			zenity.Error("输入别名时出错: " + err.Error())
+			return
+		}
+	}
+
+	newDir := CustomDir{
+		Path:    path,
+		Alias:   alias,
+		Active:  true,
+		Hidden:  true,
+		watcher: nil,
+		done:    make(chan struct{}),
+	}
+	customDirs = append(customDirs, newDir)
+	addCustomDirMenu(&customDirs[len(customDirs)-1], parentMenu)
+	hideDotFiles(path)
+	customDirs[len(customDirs)-1].startWatching()
+	saveConfig()
+}
+
+// 切换目录的激活状态
+func toggleActivate(dir *CustomDir, menuItem *systray.MenuItem) {
+	dir.Active = !dir.Active
+	if dir.Active {
+		menuItem.Check()
+		dir.startWatching()
+	} else {
+		menuItem.Uncheck()
+		dir.stopWatching()
+	}
+	saveConfig()
+}
+
+// 显示自定义目录
+func showCustomDir(dir *CustomDir, showItem, hideItem *systray.MenuItem) {
+	dir.Hidden = false
+	showItem.Check()
+	hideItem.Uncheck()
+	unhideDotFiles(dir.Path)
+	saveConfig()
+}
+
+// 隐藏自定义目录
+func hideCustomDir(dir *CustomDir, showItem, hideItem *systray.MenuItem) {
+	dir.Hidden = true
+	hideItem.Check()
+	showItem.Uncheck()
+	hideDotFiles(dir.Path)
+	saveConfig()
+}
+
+// 移除自定义目录
+func removeCustomDir(dir *CustomDir, dirMenu, parentMenu *systray.MenuItem) {
+	dir.stopWatching()
+	for i, d := range customDirs {
+		if d.Path == dir.Path {
+			customDirs = append(customDirs[:i], customDirs[i+1:]...)
+			break
+		}
+	}
+	dirMenu.Hide()
+	saveConfig()
+}
+
+// 加载配置
+func loadConfig() {
+	configPath := filepath.Join(os.Getenv("USERPROFILE"), ".hidell", "config.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// 如果文件不存在，创建一个空的配置
+		if os.IsNotExist(err) {
+			customDirs = []CustomDir{}
+			return
+		}
+		// 处理其他错误
+		panic(err)
+	}
+
+	err = json.Unmarshal(data, &customDirs)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// 保存配置
+func saveConfig() {
+	configPath := filepath.Join(os.Getenv("USERPROFILE"), ".hidell", "config.json")
+	data, err := json.MarshalIndent(customDirs, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.MkdirAll(filepath.Dir(configPath), 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile(configPath, data, 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// 添加 startWatching 方法
+func (dir *CustomDir) startWatching() {
+	if dir.watcher != nil {
+		return // 已经在监视中
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		zenity.Error("创建监视器时出错: " + err.Error())
+		return
+	}
+
+	dir.watcher = watcher
+	dir.done = make(chan struct{})
+
+	go func() {
+		defer watcher.Close()
+		dir.watchDir()
+	}()
+
+	err = watcher.Add(dir.Path)
+	if err != nil {
+		zenity.Error("添加监视目录时出错: " + err.Error())
+		dir.stopWatching()
+	}
+}
+
+// 添加 stopWatching 方法
+func (dir *CustomDir) stopWatching() {
+	if dir.watcher == nil {
+		return // 没有在监视
+	}
+
+	close(dir.done)
+	dir.watcher.Close()
+	dir.watcher = nil
+}
+
+// 添加 watchDir 方法
+func (dir *CustomDir) watchDir() {
+	for {
+		select {
+		case <-dir.done:
+			return // 收到停止信号时退出
+		case event, ok := <-dir.watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Op&fsnotify.Create == fsnotify.Create {
+				if strings.HasPrefix(filepath.Base(event.Name), ".") {
+					hideFile(event.Name)
+				}
+			}
+		case err, ok := <-dir.watcher.Errors:
+			if !ok {
+				return
+			}
+			zenity.Error("监视目录时出错: " + err.Error())
+		}
+	}
 }
