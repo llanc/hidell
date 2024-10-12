@@ -1,20 +1,44 @@
 # HIDELL
-**hide like linux**
 
-<img alt="HIDELL" height="128" src="hidell.png" title="hide like linux" width="128"/>
+<p align="center">
+  <img src="hidell.png" alt="HIDELL Logo" width="128" height="128">
+</p>
 
-一款可以让Windows系统用户目录变“整洁”的软件，它会自动隐藏“点文件”和“点文件夹”，就像Linux系统下那样。
+<p align="center">
+  <strong>Hide like Linux</strong>
+</p>
 
-如果HIDELL帮到你了，请给我一个星星。
+<p align="center">
+  <a href="https://github.com/llanc/hidell/releases/latest">
+    <img src="https://img.shields.io/github/v/release/llanc/hidell" alt="Latest Release">
+  </a>
+  <a href="https://github.com/llanc/hidell/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/llanc/hidell" alt="License">
+  </a>
+</p>
 
-功能说明：
-- 托盘功能默认针对户主目录
-- 通过其它目录菜单来添加其他目录
+[中文版](README_zh.md)
 
-A software that can make the user directory of the Windows system "tidy". It will automatically hide the "dot files" and "dot folders", just like under the Linux system.
+HIDELL is a software designed for Windows users to make specified directories "cleaner". It automatically hides "dot files" and "dot folders", just like in Linux systems, bringing better organization and visual experience to your file system.
 
-If HIDELL helps you, please give me a star.
+### Installation
 
-Function description:
-- The tray function targets the household directory by default
-- Add additional directories via the Other Directories menu
+Visit the [HIDELL release page](https://github.com/llanc/hidell/releases/latest) to download the latest version of the installation package.
+
+### Usage
+
+1. Install and run HIDELL
+2. The program will run in the system tray
+3. Click on the tray icon to access more options
+
+### Contributing
+
+Issues and pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+### License
+
+This project is licensed under the [GPL-3.0 License](https://github.com/llanc/hidell/blob/main/LICENSE).
+
+---
+
+If HIDELL is helpful to you, please give it a star!
