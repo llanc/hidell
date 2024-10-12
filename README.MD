@@ -17,7 +17,7 @@
   </a>
 </p>
 
-[中文版](README_zh.md)
+[中文](README_zh.md)
 
 HIDELL is a software designed for Windows users to make specified directories "cleaner". It automatically hides "dot files" and "dot folders", just like in Linux systems, bringing better organization and visual experience to your file system.
 
