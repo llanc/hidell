@@ -6,6 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"unsafe"
+)
+
+var (
+	kernel32          = syscall.NewLazyDLL("kernel32.dll")
+	setFileAttributes = kernel32.NewProc("SetFileAttributesW")
 )
 
 func hideDotFiles(dir string) {
@@ -41,7 +47,11 @@ func hideFile(path string) {
 	if err != nil {
 		panic(err)
 	}
-	_ = syscall.SetFileAttributes(ptr, attrs|syscall.FILE_ATTRIBUTE_HIDDEN)
+	// 设置隐藏属性和系统属性
+	_, _, err = setFileAttributes.Call(uintptr(unsafe.Pointer(ptr)), uintptr(attrs|syscall.FILE_ATTRIBUTE_HIDDEN|syscall.FILE_ATTRIBUTE_SYSTEM))
+	if err != nil && err != syscall.Errno(0) {
+		panic(err)
+	}
 }
 
 func unhideFile(path string) {
@@ -53,17 +63,15 @@ func unhideFile(path string) {
 	if err != nil {
 		panic(err)
 	}
-	_ = syscall.SetFileAttributes(ptr, attrs&^syscall.FILE_ATTRIBUTE_HIDDEN)
+	// 移除隐藏属性和系统属性
+	_, _, err = setFileAttributes.Call(uintptr(unsafe.Pointer(ptr)), uintptr(attrs&^(syscall.FILE_ATTRIBUTE_HIDDEN|syscall.FILE_ATTRIBUTE_SYSTEM)))
+	if err != nil && err != syscall.Errno(0) {
+		panic(err)
+	}
 }
 
 func watchDir(dir string, done chan struct{}) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		panic(err)
-	}
-	defer watcher.Close()
-
-	err = watcher.Add(dir)
+	err := watcher.Add(dir)
 	if err != nil {
 		panic(err)
 	}

@@ -25,10 +25,10 @@ func addCustomDirMenu(dir *CustomDir, parentMenu *systray.MenuItem) {
 		menuName = dir.Path
 	}
 	dirMenu := parentMenu.AddSubMenuItem(menuName, "")
-	mActivate := dirMenu.AddSubMenuItem("激活", "")
-	mShow := dirMenu.AddSubMenuItem("显示", "")
-	mHide := dirMenu.AddSubMenuItem("隐藏", "")
-	mRemove := dirMenu.AddSubMenuItem("移除", "")
+	mActivate := dirMenu.AddSubMenuItem(t("activate"), "")
+	mShow := dirMenu.AddSubMenuItem(t("show"), "")
+	mHide := dirMenu.AddSubMenuItem(t("hide"), "")
+	mRemove := dirMenu.AddSubMenuItem(t("remove"), "")
 
 	if dir.Active {
 		mActivate.Check()

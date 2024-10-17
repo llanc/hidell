@@ -1,0 +1,20 @@
+{
+  "activate": "激活",
+  "show": "显示",
+  "hide": "隐藏",
+  "remove": "移除",
+  "auto_hide_new_dot_files": "自动隐藏新生成的点文件/点文件夹",
+  "hide_existing_dot_files": "隐藏已存在的点文件/点文件夹",
+  "show_existing_dot_files": "显示已存在的点文件/点文件夹",
+  "custom": "自定义",
+  "add_custom_directory": "添加自定义目录",
+  "about_hidell": "关于HIDELL",
+  "language": "语言",
+  "auto_start": "开机自启",
+  "set_auto_start": "设置程序开机自启",
+  "quit": "退出",
+  "add_directory": "添加目录",
+  "add_new_directory": "添加新的目录",
+  "settings": "设置"
+}
+

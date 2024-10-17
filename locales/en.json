@@ -1,0 +1,19 @@
+{
+  "activate": "Activate",
+  "show": "Show",
+  "hide": "Hide",
+  "remove": "Remove",
+  "auto_hide_new_dot_files": "Automatically hide new dot files/folders",
+  "hide_existing_dot_files": "Hide existing dot files/folders",
+  "show_existing_dot_files": "Show existing dot files/folders",
+  "custom": "Custom",
+  "add_custom_directory": "Add custom directory",
+  "about_hidell": "About HIDELL",
+  "language": "Language",
+  "auto_start": "Auto Start",
+  "set_auto_start": "Set program to auto start",
+  "quit": "Quit",
+  "add_directory": "Add Directory",
+  "add_new_directory": "Add new directory",
+  "settings": "Settings"
+}

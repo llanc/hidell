@@ -3,34 +3,56 @@ package main
 import (
 	"github.com/getlantern/systray"
 	"github.com/skratchdot/open-golang/open"
+	"os"
+	"os/exec"
 )
 
 var systrayToolTip = "HIDE Like Linux"
+
+// 全局变量来存储菜单项引用
+var (
+	mMonitor   *systray.MenuItem
+	mHide      *systray.MenuItem
+	mShow      *systray.MenuItem
+	mOtherDirs *systray.MenuItem
+	mSettings  *systray.MenuItem
+	mEnglish   *systray.MenuItem
+	mChinese   *systray.MenuItem
+	mAddDir    *systray.MenuItem
+	mQuit      *systray.MenuItem
+	mLanguage  *systray.MenuItem
+	mAutoStart *systray.MenuItem
+	mAbout     *systray.MenuItem
+)
 
 func onReady() {
 	systray.SetIcon(logo)
 	systray.SetTitle("HIDELL")
 	systray.SetTooltip(systrayToolTip)
 
-	mMonitor := systray.AddMenuItem("激活", "自动隐藏新生成的点文件/点文件夹")
+	mMonitor = systray.AddMenuItem(t("activate"), t("auto_hide_new_dot_files"))
 	mMonitor.Check()
 	systray.AddSeparator()
-	mHide := systray.AddMenuItem("隐藏", "隐藏已存在的点文件/点文件夹")
-	mShow := systray.AddMenuItem("显示", "显示已存在的点文件/点文件夹")
+	mHide = systray.AddMenuItem(t("hide"), t("hide_existing_dot_files"))
+	mShow = systray.AddMenuItem(t("show"), t("show_existing_dot_files"))
 	systray.AddSeparator()
 
-	mOtherDirs := systray.AddMenuItem("其他", "管理其他目录")
+	mOtherDirs = systray.AddMenuItem(t("custom"), t("add_custom_directory"))
 
 	systray.AddSeparator()
-	mAbout := systray.AddMenuItem("关于HIDELL V1.2", "")
-	systray.AddSeparator()
-	mAutoStart := systray.AddMenuItem("开机自启", "设置程序开机自启")
+	mSettings = systray.AddMenuItem(t("settings"), "")
+	mLanguage = mSettings.AddSubMenuItem(t("language"), "")
+	mEnglish = mLanguage.AddSubMenuItem("English", "")
+	mChinese = mLanguage.AddSubMenuItem("中文", "")
+	mAutoStart = mSettings.AddSubMenuItem(t("auto_start"), t("set_auto_start"))
 	if isAutoStartEnabled() {
 		mAutoStart.Check()
 	}
-	mQuit := systray.AddMenuItem("退出", "")
+	mAbout = mSettings.AddSubMenuItem(t("about_hidell")+" V1.3", "")
 
-	mAddDir := mOtherDirs.AddSubMenuItem("添加目录", "添加新的目录")
+	mQuit = systray.AddMenuItem(t("quit"), "")
+
+	mAddDir = mOtherDirs.AddSubMenuItem(t("add_directory"), t("add_new_directory"))
 
 	// 添加自定义目录菜单
 	for i := range customDirs {
@@ -38,29 +60,56 @@ func onReady() {
 	}
 
 	userHome := getUserHome()
-	go handleMenuClicks(mMonitor, mHide, mShow, mAutoStart, mAbout, mQuit, mAddDir, mOtherDirs, userHome)
+	go handleMenuClicks(userHome)
 }
 
-func handleMenuClicks(mMonitor, mHide, mShow, mAutoStart, mAbout, mQuit, mAddDir *systray.MenuItem, mOtherDirs *systray.MenuItem, userHome string) {
+func handleMenuClicks(userHome string) {
 	for {
 		select {
 		case <-mMonitor.ClickedCh:
 			toggleMonitor(mMonitor)
 		case <-mHide.ClickedCh:
-			toggleHide(mHide, mShow, userHome)
+			toggleHide(userHome)
 		case <-mShow.ClickedCh:
-			toggleShow(mShow, mHide, userHome)
+			toggleShow(userHome)
 		case <-mAutoStart.ClickedCh:
-			toggleAutoStart(mAutoStart)
+			toggleAutoStart()
 		case <-mAbout.ClickedCh:
-			_ = open.Run("https://www.github.com/llanc/hidell")
+			open.Run("https://github.com/llanc/hidell")
 		case <-mQuit.ClickedCh:
 			systray.Quit()
 			return
 		case <-mAddDir.ClickedCh:
-			addNewCustomDir(mOtherDirs)
+			addNewCustomDir(mAddDir)
+		case <-mEnglish.ClickedCh:
+			config.Language = "en"
+			saveConfig()
+			restartProgram()
+		case <-mChinese.ClickedCh:
+			config.Language = "zh"
+			saveConfig()
+			restartProgram()
 		}
 	}
+}
+
+func restartProgram() {
+	executable, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+
+	cmd := exec.Command(executable, os.Args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err = cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+
+	systray.Quit()
+	os.Exit(0)
 }
 
 func toggleMonitor(mMonitor *systray.MenuItem) {
@@ -77,19 +126,19 @@ func toggleMonitor(mMonitor *systray.MenuItem) {
 	}
 }
 
-func toggleHide(mHide, mShow *systray.MenuItem, userHome string) {
+func toggleHide(userHome string) {
 	mHide.Check()
 	mShow.Uncheck()
 	hideDotFiles(userHome)
 }
 
-func toggleShow(mShow, mHide *systray.MenuItem, userHome string) {
+func toggleShow(userHome string) {
 	mShow.Check()
 	mHide.Uncheck()
 	unhideDotFiles(userHome)
 }
 
-func toggleAutoStart(mAutoStart *systray.MenuItem) {
+func toggleAutoStart() {
 	if mAutoStart.Checked() {
 		disableAutoStart()
 		mAutoStart.Uncheck()
