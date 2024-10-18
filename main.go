@@ -29,7 +29,7 @@ func main() {
 	}
 
 	go watchDir(getUserHome(), watcherDone)
-	systray.Run(onReady, onExit)
+	systray.Run(systrayInit, onExit)
 }
 
 func onExit() {

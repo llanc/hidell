@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 )
 
 var translations map[string]map[string]string
@@ -12,7 +12,7 @@ func loadTranslations() {
 
 	languages := []string{"en", "zh"}
 	for _, lang := range languages {
-		file, err := ioutil.ReadFile("locales/" + lang + ".json")
+		file, err := os.ReadFile("locales/" + lang + ".json")
 		if err != nil {
 			panic(err)
 		}

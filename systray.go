@@ -11,33 +11,33 @@ var systrayToolTip = "HIDE Like Linux"
 
 // 全局变量来存储菜单项引用
 var (
-	mMonitor   *systray.MenuItem
-	mHide      *systray.MenuItem
-	mShow      *systray.MenuItem
-	mOtherDirs *systray.MenuItem
-	mSettings  *systray.MenuItem
-	mEnglish   *systray.MenuItem
-	mChinese   *systray.MenuItem
-	mAddDir    *systray.MenuItem
-	mQuit      *systray.MenuItem
-	mLanguage  *systray.MenuItem
-	mAutoStart *systray.MenuItem
-	mAbout     *systray.MenuItem
+	mUserHomeActivate *systray.MenuItem
+	mUserHomeHide     *systray.MenuItem
+	mUserHomeShow     *systray.MenuItem
+	mCustom           *systray.MenuItem
+	mSettings         *systray.MenuItem
+	mEnglish          *systray.MenuItem
+	mChinese          *systray.MenuItem
+	mAddDir           *systray.MenuItem
+	mQuit             *systray.MenuItem
+	mLanguage         *systray.MenuItem
+	mAutoStart        *systray.MenuItem
+	mAbout            *systray.MenuItem
 )
 
-func onReady() {
+func systrayInit() {
 	systray.SetIcon(logo)
 	systray.SetTitle("HIDELL")
 	systray.SetTooltip(systrayToolTip)
 
-	mMonitor = systray.AddMenuItem(t("activate"), t("auto_hide_new_dot_files"))
-	mMonitor.Check()
+	mUserHomeActivate = systray.AddMenuItem(t("activate"), t("auto_hide_new_dot_files"))
+	mUserHomeActivate.Check()
 	systray.AddSeparator()
-	mHide = systray.AddMenuItem(t("hide"), t("hide_existing_dot_files"))
-	mShow = systray.AddMenuItem(t("show"), t("show_existing_dot_files"))
+	mUserHomeHide = systray.AddMenuItem(t("hide"), t("hide_existing_dot_files"))
+	mUserHomeShow = systray.AddMenuItem(t("show"), t("show_existing_dot_files"))
 	systray.AddSeparator()
 
-	mOtherDirs = systray.AddMenuItem(t("custom"), t("add_custom_directory"))
+	mCustom = systray.AddMenuItem(t("custom"), t("add_custom_directory"))
 
 	systray.AddSeparator()
 	mSettings = systray.AddMenuItem(t("settings"), "")
@@ -52,11 +52,11 @@ func onReady() {
 
 	mQuit = systray.AddMenuItem(t("quit"), "")
 
-	mAddDir = mOtherDirs.AddSubMenuItem(t("add_directory"), t("add_new_directory"))
+	mAddDir = mCustom.AddSubMenuItem(t("add_directory"), t("add_new_directory"))
 
 	// 添加自定义目录菜单
-	for i := range customDirs {
-		addCustomDirMenu(&customDirs[i], mOtherDirs)
+	for i := range config.CustomDirs {
+		addCustomDirMenu(&customDirs[i], mCustom)
 	}
 
 	userHome := getUserHome()
@@ -66,11 +66,11 @@ func onReady() {
 func handleMenuClicks(userHome string) {
 	for {
 		select {
-		case <-mMonitor.ClickedCh:
-			toggleMonitor(mMonitor)
-		case <-mHide.ClickedCh:
+		case <-mUserHomeActivate.ClickedCh:
+			toggleMonitor(mUserHomeActivate)
+		case <-mUserHomeHide.ClickedCh:
 			toggleHide(userHome)
-		case <-mShow.ClickedCh:
+		case <-mUserHomeShow.ClickedCh:
 			toggleShow(userHome)
 		case <-mAutoStart.ClickedCh:
 			toggleAutoStart()
@@ -127,14 +127,14 @@ func toggleMonitor(mMonitor *systray.MenuItem) {
 }
 
 func toggleHide(userHome string) {
-	mHide.Check()
-	mShow.Uncheck()
+	mUserHomeHide.Check()
+	mUserHomeShow.Uncheck()
 	hideDotFiles(userHome)
 }
 
 func toggleShow(userHome string) {
-	mShow.Check()
-	mHide.Uncheck()
+	mUserHomeShow.Check()
+	mUserHomeHide.Uncheck()
 	unhideDotFiles(userHome)
 }
 
