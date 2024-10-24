@@ -1,7 +1,7 @@
 # HIDELL
 
 <p align="center">
-  <img src="hidell.png" alt="HIDELL Logo" width="128" height="128">
+  <img src="assets/hidell.png" alt="HIDELL Logo" width="128" height="128">
 </p>
 
 <p align="center">

@@ -15,5 +15,9 @@
   "quit": "Quit",
   "add_directory": "Add Directory",
   "add_new_directory": "Add new directory",
-  "settings": "Settings"
+  "settings": "Settings",
+  "ok": "Ok",
+  "cancel": "Cancel",
+  "setAlias": "Set Alias",
+  "optional": "optional"
 }

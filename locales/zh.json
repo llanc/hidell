@@ -15,6 +15,10 @@
   "quit": "退出",
   "add_directory": "添加目录",
   "add_new_directory": "添加新的目录",
-  "settings": "设置"
+  "settings": "设置",
+  "ok": "确定",
+  "cancel": "取消",
+  "setAlias": "设置别名",
+  "optional": "可选"
 }
 

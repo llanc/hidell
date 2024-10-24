@@ -34,6 +34,7 @@ jobs:
         GOOS: windows
         GOARCH: ${{ matrix.goarch }}
       run: |
+        cd cmd/hidell
         go build -ldflags="-H windowsgui" -o HIDELL_${{ matrix.arch }}.exe
 
     - name: Upload to Release Action

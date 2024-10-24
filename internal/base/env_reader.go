@@ -1,84 +1,19 @@
-package main
+package base
 
 import (
-	"encoding/json"
 	"golang.org/x/sys/windows"
 	"golang.org/x/text/language"
 	"golang.org/x/text/language/display"
 	"os"
-	"path/filepath"
 	"syscall"
 	"unsafe"
 )
 
-type Config struct {
-	CustomDirs []CustomDir `json:"customDirs"`
-	Language   string      `json:"language"`
+func GetUserHome() string {
+	return os.Getenv("USERPROFILE")
 }
 
-var config Config
-
-func LoadConfig() {
-	configPath := filepath.Join(getUserHome(), ".hidell", "config.json")
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			config = Config{
-				CustomDirs: []CustomDir{},
-				Language:   getDefaultLanguage(),
-			}
-			saveConfig()
-			return
-		}
-		panic(err)
-	}
-
-	// 首先尝试解析完整的新配置
-	err = json.Unmarshal(data, &config)
-	if err == nil {
-		// 成功解析新配置
-		if config.Language == "" {
-			config.Language = getDefaultLanguage()
-			saveConfig()
-		}
-	} else {
-		// 如果解析失败，尝试解析旧版本的配置文件
-		var oldConfig []CustomDir
-		err = json.Unmarshal(data, &oldConfig)
-		if err != nil {
-			panic(err)
-		}
-		// 使用旧配置并创建新的配置结构
-		config = Config{
-			CustomDirs: oldConfig,
-			Language:   getDefaultLanguage(),
-		}
-		// 保存更新后的配置
-		saveConfig()
-	}
-
-	customDirs = config.CustomDirs
-}
-
-func saveConfig() {
-	configPath := filepath.Join(getUserHome(), ".hidell", "config.json")
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-
-	err = os.MkdirAll(filepath.Dir(configPath), 0755)
-	if err != nil {
-		panic(err)
-	}
-
-	err = os.WriteFile(configPath, data, 0644)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func getDefaultLanguage() string {
+func GetDefaultLanguage() string {
 	// 获取用户界面语言
 	k32 := windows.NewLazySystemDLL("kernel32.dll")
 	getUserDefaultUILanguage := k32.NewProc("GetUserDefaultUILanguage")
@@ -141,4 +76,10 @@ func mapLanguage(lang string) string {
 	default:
 		return "en"
 	}
+}
+
+func GetForegroundWindow() uintptr {
+	var user32 = windows.NewLazyDLL("user32.dll")
+	hwnd, _, _ := user32.NewProc("GetForegroundWindow").Call()
+	return hwnd
 }
