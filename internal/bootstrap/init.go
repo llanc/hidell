@@ -5,6 +5,7 @@ import (
 	"hidell/configs"
 	"hidell/internal/base"
 	"hidell/internal/global"
+	"hidell/locales"
 	"os"
 	"path/filepath"
 )
@@ -59,13 +60,14 @@ func i18n() {
 
 	languages := []string{"en", "zh"}
 	for _, lang := range languages {
-		file, err := os.ReadFile("locales/" + lang + ".json")
-		if err != nil {
-			panic(err)
+
+		file := locales.En
+		if lang == "zh" {
+			file = locales.ZH
 		}
 
 		var langTranslations map[string]string
-		err = json.Unmarshal(file, &langTranslations)
+		err := json.Unmarshal(file, &langTranslations)
 		if err != nil {
 			panic(err)
 		}
