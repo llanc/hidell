@@ -34,8 +34,7 @@ jobs:
         GOOS: windows
         GOARCH: ${{ matrix.goarch }}
       run: |
-        cd cmd/hidell
-        go build -ldflags="-H windowsgui" -o ../../HIDELL_${{ matrix.arch }}.exe
+        go build -ldflags="-H windowsgui" -o HIDELL_${{ matrix.arch }}.exe ./cmd/hidell
 
     - name: Upload to Release Action
       uses: softprops/action-gh-release@v2
